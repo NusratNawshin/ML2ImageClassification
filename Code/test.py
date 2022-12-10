@@ -31,7 +31,7 @@ def evaluation(y, y_hat, title='Confusion Matrix'):
     plt.show()
 
 def test():
-    batch_size = 8
+    batch_size = 16
     output_data_path = '.'
     train.check_preprocess()
     if os.path.exists('model'):

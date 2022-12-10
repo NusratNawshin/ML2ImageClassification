@@ -3,7 +3,7 @@ import pickle
 
 import preprocessing
 from keras.models import Sequential
-from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
+from keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, LeakyReLU
 from keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.callbacks import ReduceLROnPlateau
@@ -26,7 +26,11 @@ def masked_model():
     model.add(MaxPooling2D(pool_size=2))
     model.add(Dropout(0.3))
     model.add(Flatten())
-    model.add(Dense(units=500, activation='relu'))
+    model.add(Dense(units=2048, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(units=1024, activation='relu'))
+    model.add(Dropout(0.3))
+    model.add(Dense(units=512, activation='relu'))
     model.add(Dropout(0.3))
     model.add(Dense(units=2, activation='softmax'))
     #
@@ -59,8 +63,8 @@ def create_dataset_generator(datagen, batch_size,path):
 
 def train():
     check_preprocess()
-    batch_size = 8
-    epochs = 50
+    batch_size = 16
+    epochs = 100
     model = masked_model()
     datagen = create_datagen()
     val_datagen = create_valDatagen()
@@ -69,24 +73,13 @@ def train():
     val_generator=create_dataset_generator(val_datagen,batch_size,'/val')
     test_generator= create_dataset_generator(val_datagen,batch_size,'/test')
 
-    # val_generator = val_datagen.flow_from_directory(
-    #     directory=str(os.getcwd()) + '/val',
-    #     target_size=(35, 35),
-    #     class_mode="categorical", batch_size=batch_size, shuffle=True
-    # )
-    # Test data
-    # test_generator = val_datagen.flow_from_directory(
-    #     directory=str(os.getcwd()) + '/test',
-    #     target_size=(35, 35),
-    #     class_mode="categorical", batch_size=batch_size, shuffle=False
-    # )
     data_size = len(train_generator)
     steps_per_epoch = int(data_size / batch_size)
     print(f"steps_per_epoch: {steps_per_epoch}")
     val_steps = int(len(val_generator) // batch_size)
     print(f"val_steps: {val_steps}")
     model.compile(
-        optimizer="SGD",
+        optimizer="adam",
         loss="binary_crossentropy",
         metrics=['accuracy', 'Recall', 'Precision', 'AUC']
     )
