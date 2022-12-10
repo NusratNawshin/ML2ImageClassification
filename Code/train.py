@@ -86,7 +86,7 @@ def train():
     val_steps = int(len(val_generator) // batch_size)
     print(f"val_steps: {val_steps}")
     model.compile(
-        optimizer="adam",
+        optimizer="SGD",
         loss="binary_crossentropy",
         metrics=['accuracy', 'Recall', 'Precision', 'AUC']
     )
