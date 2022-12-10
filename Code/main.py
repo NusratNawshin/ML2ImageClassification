@@ -1,4 +1,4 @@
-#import Data
+# import Data
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,11 +16,12 @@ from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.metrics import precision_score, recall_score, accuracy_score,f1_score, classification_report
 import cv2
 import seaborn as sns
+from imblearn.over_sampling import RandomOverSampler
 
 
-input_data_path = '/images'
-annotations_path = "/annotations"
-images = [*os.listdir("/images")]
+input_data_path = str(os.getcwd())+'/images'
+annotations_path = str(os.getcwd())+"/annotations"
+images = [*os.listdir(str(os.getcwd())+"/images")]
 output_data_path =  '.'
 
 def parse_annotation(path):
@@ -72,39 +73,76 @@ dataset = [parse_annotation(anno) for anno in glob.glob(annotations_path+"/*.xml
 full_dataset = sum(dataset, [])
 
 df = pd.DataFrame(full_dataset)
-df.shape
+print(df.shape)
 
-df.head()
+print(df.head())
 
 final_test_image = 'maksssksksss0'
 df_final_test = df.loc[df["file"] == final_test_image]
 images.remove(f'{final_test_image}.png')
 df = df.loc[df["file"] != final_test_image]
 
-df["name"].value_counts()
+print(df["name"].value_counts())
 
+
+#joined masked incorrectly with without mask
+df['name']=df['name'].replace('mask_weared_incorrect','without_mask')
+
+df.insert(9,'label',df.name)
+df= df.drop(['name'],axis=1)
+
+#balance
+def balance(xdf_data):
+    """
+    xdf_data: dataframe for both x & y
+    """
+    # Augmenting Minority Target Variabe
+
+    # The RandomOverSampler
+    ros = RandomOverSampler(random_state=55)
+    x = xdf_data.iloc[:, :-1]
+    y = xdf_data.iloc[:, -1]
+
+    # Augment the training data
+    X_ros_train, y_ros_train = ros.fit_resample(x, y)
+    new_data = pd.DataFrame(data=X_ros_train, columns=xdf_data.columns[:-1])
+    new_data['name'] = y_ros_train
+    return new_data
+# x=df.iloc[:,:-1]
+# y=df.iloc[:,-1]
+df=balance(df)
+
+# df_class0=df[df['name']=='with_mask']
+# df_class1=df[df['name']=='without_mask']
+# len_class0=len(df_class0)
+# df_class1_over=df_class1.sample(len_class0, replace=True)
+# #how to pass it to the model
+# print(df_class1_over.shape)
+
+#
 df["name"].value_counts().plot(kind='barh')
 plt.xlabel('Count', fontsize = 10, fontweight = 'bold')
 plt.ylabel('name', fontsize = 10, fontweight = 'bold')
+plt.show()
 
 labels = df['name'].unique()
 directory = ['train', 'test', 'val']
 output_data_path =  '.'
-
+#
 import os
 for label in labels:
     for d in directory:
         path = os.path.join(output_data_path, d, label)
         if not os.path.exists(path):
             os.makedirs(path)
-
+#
 def crop_img(image_path, x_min, y_min, x_max, y_max):
     x_shift = (x_max - x_min) * 0.1
     y_shift = (y_max - y_min) * 0.1
     img = Image.open(image_path)
     cropped = img.crop((x_min - x_shift, y_min - y_shift, x_max + x_shift, y_max + y_shift))
     return cropped
-
+#
 def extract_faces(image_name, image_info):
     faces = []
     df_one_img = image_info[image_info['file'] == image_name[:-4]][['xmin', 'ymin', 'xmax', 'ymax', 'name']]
@@ -113,7 +151,7 @@ def extract_faces(image_name, image_info):
         image_path = os.path.join(input_data_path, image_name)
         faces.append((crop_img(image_path, x_min, y_min, x_max, y_max), label,f'{image_name[:-4]}_{(x_min, y_min)}'))
     return faces
-
+#
 cropped_faces = [extract_faces(img, df) for img in images]
 flat_cropped_faces = sum(cropped_faces, [])
 with_mask = [(img, image_name) for img, label,image_name in flat_cropped_faces if label == "with_mask"]
@@ -129,11 +167,14 @@ print(len(with_mask) + len(without_mask) + len(mask_weared_incorrect))
 train_with_mask, test_with_mask = train_test_split(with_mask, test_size=0.20, random_state=42)
 test_with_mask, val_with_mask = train_test_split(test_with_mask, test_size=0.7, random_state=42)
 
-train_mask_weared_incorrect, test_mask_weared_incorrect = train_test_split(mask_weared_incorrect, test_size=0.20, random_state=42)
-test_mask_weared_incorrect, val_mask_weared_incorrect = train_test_split(test_mask_weared_incorrect, test_size=0.7, random_state=42)
+# train_mask_weared_incorrect, test_mask_weared_incorrect = train_test_split(mask_weared_incorrect, test_size=0.20, random_state=42)
+# test_mask_weared_incorrect, val_mask_weared_incorrect = train_test_split(test_mask_weared_incorrect, test_size=0.7, random_state=42)
 
+###here you have to substitude
 train_without_mask, test_without_mask = train_test_split(without_mask, test_size=0.20, random_state=42)
 test_without_mask, val_without_mask = train_test_split(test_without_mask, test_size=0.7, random_state=42)
+
+# print(with_mask.shape)
 
 def save_image(image, image_name, output_data_path,  dataset_type, label):
     output_path = os.path.join(output_data_path, dataset_type, label ,f'{image_name}.png')
@@ -141,9 +182,9 @@ def save_image(image, image_name, output_data_path,  dataset_type, label):
 
 for image, image_name in train_with_mask:
     save_image(image, image_name, output_data_path, 'train', 'with_mask')
-
-for image, image_name in train_mask_weared_incorrect:
-    save_image(image, image_name, output_data_path, 'train', 'mask_weared_incorrect')
+#
+# for image, image_name in train_mask_weared_incorrect:
+#     save_image(image, image_name, output_data_path, 'train', 'mask_weared_incorrect')
 
 for image, image_name in train_without_mask:
     save_image(image, image_name, output_data_path, 'train', 'without_mask')
@@ -151,8 +192,8 @@ for image, image_name in train_without_mask:
 for image, image_name in test_with_mask:
     save_image(image, image_name, output_data_path, 'test', 'with_mask')
 
-for image, image_name in test_mask_weared_incorrect:
-    save_image(image, image_name, output_data_path, 'test', 'mask_weared_incorrect')
+# for image, image_name in test_mask_weared_incorrect:
+#     save_image(image, image_name, output_data_path, 'test', 'mask_weared_incorrect')
 
 for image, image_name in test_without_mask:
     save_image(image, image_name, output_data_path, 'test', 'without_mask')
@@ -163,12 +204,12 @@ for image, image_name in val_with_mask:
 for image, image_name in val_without_mask:
     save_image(image, image_name, output_data_path, 'val', 'without_mask')
 
-for image, image_name in val_mask_weared_incorrect:
-    save_image(image, image_name, output_data_path, 'val', 'mask_weared_incorrect')
-
+# for image, image_name in val_mask_weared_incorrect:
+#     save_image(image, image_name, output_data_path, 'val', 'mask_weared_incorrect')
+# #
 model = Sequential()
-model.add(Conv2D(filters = 16, kernel_size = 3,  padding='same', activation = 'relu', input_shape = (35,35,3)))
-model.add(MaxPooling2D(pool_size = 2))
+model.add(Conv2D(filters = 24, kernel_size = 5,  padding='same', activation = 'relu', input_shape = (35,35,3)))
+model.add(MaxPooling2D(pool_size = 3))
 model.add(Conv2D(filters = 32, kernel_size = 3,  padding='same', activation = 'relu'))
 model.add(MaxPooling2D(pool_size = 2))
 model.add(Conv2D(filters = 64, kernel_size = 3,  padding='same', activation = 'relu'))
@@ -177,27 +218,26 @@ model.add(Dropout(0.3))
 model.add(Flatten())
 model.add(Dense(units = 500, activation = 'relu'))
 model.add(Dropout(0.3))
-model.add(Dense(units = 3, activation = 'softmax'))
-
+model.add(Dense(units = 2, activation = 'softmax'))
+#
 model.summary()
-
-
+#
+#
 batch_size = 8
-epochs = 50
-
+epochs = 100
+#
 datagen = ImageDataGenerator(
     rescale=1.0 / 255, horizontal_flip=True, zoom_range=0.1, shear_range=0.2, width_shift_range=0.1,
     height_shift_range=0.1, rotation_range=4, vertical_flip=False
-
-)
-
+ )
+#
 val_datagen = ImageDataGenerator(
     rescale=1.0 / 255
 )
 
 
 train_generator = datagen.flow_from_directory(
-    directory='/kaggle/working/train',
+    directory=str(os.getcwd())+'/train',
     target_size = (35,35),
     class_mode="categorical", batch_size=batch_size, shuffle=True
 
@@ -205,14 +245,14 @@ train_generator = datagen.flow_from_directory(
 
 # Validation data
 val_generator = val_datagen.flow_from_directory(
-    directory='/kaggle/working/val',
+    directory=str(os.getcwd())+'/val',
     target_size = (35,35),
     class_mode="categorical", batch_size=batch_size, shuffle=True
 )
 
 # Test data
 test_generator = val_datagen.flow_from_directory(
-    directory='/kaggle/working/test',
+    directory=str(os.getcwd())+'/test',
     target_size = (35,35),
     class_mode="categorical", batch_size=batch_size, shuffle=False
 )
@@ -227,14 +267,14 @@ print(f"val_steps: {val_steps}")
 
 model.compile(
     optimizer="adam",
-    loss="categorical_crossentropy",
+    loss="binary_crossentropy",
     metrics=['accuracy', 'Recall', 'Precision', 'AUC']
 )
 
 early_stopping = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)
 lrr = ReduceLROnPlateau(monitor='val_loss',patience=8,verbose=1,factor=0.5, min_lr=0.00001)
-model_history = model.fit_generator(
-    generator=train_generator,
+model_history = model.fit(
+    train_generator,
     steps_per_epoch=steps_per_epoch,
     epochs=epochs,
     shuffle=True,
@@ -244,10 +284,11 @@ model_history = model.fit_generator(
 )
 
 model_loss, model_acc, recall, precision, auc = model.evaluate(test_generator)
-print(f'{model_loss} || {model_acc*100} || {recall*100} || {precision*100} || {auc*100}')
+print("Test Scores:")
+print(f'Loss: {model_loss:.3f} || Accuracy: {model_acc*100:.3f} || Recall: {recall*100:.3f} || Precision: {precision*100:.3f} || AUC: {auc*100:.3f}')
 
 predictions = model.predict(test_generator)
-predictions
+# predictions
 
 def plot_loss_and_accuracy(history):
     history_df = pd.DataFrame(history)
@@ -287,5 +328,7 @@ y_pred = model.predict(test_generator).argmax(axis=1) # Predict prob and get Cla
 
 evaluation(y_true, y_pred)
 
-display(classes)
+# display(classes)
 np.bincount(y_pred)
+F1 = 2 * (precision * recall) / (precision + recall)
+print(F1)
