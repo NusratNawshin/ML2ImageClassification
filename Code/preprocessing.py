@@ -58,6 +58,7 @@ def balance(xdf_data):
     """
     xdf_data: dataframe for both x & y
     """
+    # Augmenting Minority Target Variabe
 
     # The RandomOverSampler
     ros = RandomOverSampler(random_state=55)
@@ -134,19 +135,19 @@ def preprocessing():
     flat_cropped_faces = sum(cropped_faces, [])
     with_mask = [(img, image_name) for img, label, image_name in flat_cropped_faces if label == "with_mask"]
 
-    # mask_weared_incorrect = [(img, image_name) for img, label, image_name in flat_cropped_faces if
-    #                          label == "mask_weared_incorrect"]
+    mask_weared_incorrect = [(img, image_name) for img, label, image_name in flat_cropped_faces if
+                             label == "mask_weared_incorrect"]
     without_mask = [(img, image_name) for img, label, image_name in flat_cropped_faces if label == "without_mask"]
 
     print(len(with_mask))
     print(len(without_mask))
-    # print(len(mask_weared_incorrect))
-    print(len(with_mask) + len(without_mask))
+    print(len(mask_weared_incorrect))
+    print(len(with_mask) + len(without_mask) + len(mask_weared_incorrect))
 
-    train_with_mask, test_with_mask = train_test_split(with_mask, test_size=0.25, random_state=42)
-    test_with_mask, val_with_mask = train_test_split(test_with_mask, test_size=0.5, random_state=42)
-    train_without_mask, test_without_mask = train_test_split(without_mask, test_size=0.25, random_state=42)
-    test_without_mask, val_without_mask = train_test_split(test_without_mask, test_size=0.5, random_state=42)
+    train_with_mask, test_with_mask = train_test_split(with_mask, test_size=0.20, random_state=42)
+    test_with_mask, val_with_mask = train_test_split(test_with_mask, test_size=0.7, random_state=42)
+    train_without_mask, test_without_mask = train_test_split(without_mask, test_size=0.20, random_state=42)
+    test_without_mask, val_without_mask = train_test_split(test_without_mask, test_size=0.7, random_state=42)
     for image, image_name in train_with_mask:
         save_image(image, image_name, output_data_path, 'train', 'with_mask')
 
@@ -169,3 +170,6 @@ def preprocessing():
 # Run the preprocessing pipeline
 if __name__ == "__main__":
     preprocessing()
+
+# Reference Code
+# https://www.kaggle.com/code/xiehf355023/face-mask-detection-cnn
