@@ -11,6 +11,7 @@ from sklearn.metrics import confusion_matrix, classification_report
 
 
 def plot_loss_and_accuracy(history):
+    "Plots loss and accuracy vs epochs"
     history_df = pd.DataFrame(history)
     fig, ax = plt.subplots(1, 2, figsize=(12, 6))
 
@@ -23,6 +24,7 @@ def plot_loss_and_accuracy(history):
 
 
 def evaluation(y, y_hat, title='Confusion Matrix'):
+    "Plots the confusion matrix"
     cm = confusion_matrix(y, y_hat)
     sns.heatmap(cm, cmap='PuBu', annot=True, fmt='g', annot_kws={'size': 20})
     plt.xlabel('predicted', fontsize=18)
@@ -32,6 +34,7 @@ def evaluation(y, y_hat, title='Confusion Matrix'):
     plt.show()
 
 def prediction_label(predicts):
+    "Set threshold to predict labels"
     temp = []
     for i in predicts:
         if i[0] < 0.5:
