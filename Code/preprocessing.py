@@ -7,9 +7,26 @@ import xml.etree.ElementTree as ET
 from PIL import Image
 from sklearn.model_selection import train_test_split
 import os
+import gdown
+import zipfile
+
+if not (os.path.exists('model')):
+    os.mkdir('model')
+if (not os.path.exists('images') or not os.path.exists('annotations')):
+
+    url = "https://drive.google.com/uc?id=1dcO2Hyery3NbwPGRs11wlGnv6LIyhsUC"
+    output = "dataset.zip"
+    gdown.download(url, output, quiet=False)
+    data_zip=zipfile.ZipFile('dataset.zip')
+    data_zip.extractall()
+    data_zip.close()
 
 
 def parse_annotation(path):
+    """
+    :param path (string): file path of annotation folder containing .xml files containing face information on each images
+    :return (list): [image name,  image width, image height,  image depth, classname, xmin,  ymin,  xmax,  ymax]
+    """
     tree = ET.parse(path)
     root = tree.getroot()
     constants = {}
@@ -31,6 +48,10 @@ def parse_annotation(path):
 
 
 def parse_annotation_object(annotation_object):
+    """
+    :param annotation_object:  face object
+    :return (dict): classname, xmin,  ymin,  xmax,  ymax
+    """
     params = {}
     for param in list(annotation_object):
         if param.tag == 'name':
@@ -50,29 +71,13 @@ def parse_annotation_object(annotation_object):
 
 
 def merge(dict1, dict2):
+    "Merges two dictionary"
     res = {**dict1, **dict2}
     return res
 
 
-def balance(xdf_data):
-    """
-    xdf_data: dataframe for both x & y
-    """
-    # Augmenting Minority Target Variabe
-
-    # The RandomOverSampler
-    ros = RandomOverSampler(random_state=55)
-    x = xdf_data.iloc[:, :-1]
-    y = xdf_data.iloc[:, -1]
-
-    # Augment the training data
-    X_ros_train, y_ros_train = ros.fit_resample(x, y)
-    new_data = pd.DataFrame(data=X_ros_train, columns=xdf_data.columns[:-1])
-    new_data['name'] = y_ros_train
-    return new_data
-
-
 def crop_img(image_path, x_min, y_min, x_max, y_max):
+    "crop faces from full picture"
     x_shift = (x_max - x_min) * 0.1
     y_shift = (y_max - y_min) * 0.1
     img = Image.open(image_path)
@@ -82,6 +87,7 @@ def crop_img(image_path, x_min, y_min, x_max, y_max):
 
 #
 def extract_faces(image_name, image_info, input_data_path):
+    "extract faces from full image"
     faces = []
     df_one_img = image_info[image_info['file'] == image_name[:-4]][['xmin', 'ymin', 'xmax', 'ymax', 'name']]
     for row_num in range(len(df_one_img)):
@@ -92,11 +98,13 @@ def extract_faces(image_name, image_info, input_data_path):
 
 
 def save_image(image, image_name, output_data_path, dataset_type, label):
+    "Save image in local directory"
     output_path = os.path.join(output_data_path, dataset_type, label, f'{image_name}.png')
     image.save(output_path)
 
 
 def preprocessing():
+    "Main preprocessing function"
     input_data_path = str(os.getcwd()) + '/images'
     annotations_path = str(os.getcwd()) + "/annotations"
     images = [*os.listdir(str(os.getcwd()) + "/images")]
@@ -110,7 +118,7 @@ def preprocessing():
 
     print(df.head())
 
-    final_test_image = 'maksssksksss0'
+    final_test_image = 'maksssksksss132'
     df_final_test = df.loc[df["file"] == final_test_image]
     images.remove(f'{final_test_image}.png')
     df = df.loc[df["file"] != final_test_image]
@@ -119,35 +127,44 @@ def preprocessing():
 
     # joined masked incorrectly with without mask
     df['name'] = df['name'].replace('mask_weared_incorrect', 'without_mask')
+    print("After merging 'mask_weared_incorrect' & 'without_mask' as 'without_mask'")
+    print(df["name"].value_counts())
 
-    df.insert(9, 'label', df.name)
-    df = df.drop(['name'], axis=1)
-    df = balance(df)
+    # df.insert(9, 'label', df.name)
+    # df = df.drop(['name'], axis=1)
+    # df = balance(df)
+
     labels = df['name'].unique()
+
     directory = ['train', 'test', 'val']
     output_data_path = '.'
+
     for label in labels:
         for d in directory:
             path = os.path.join(output_data_path, d, label)
             if not os.path.exists(path):
                 os.makedirs(path)
+
     cropped_faces = [extract_faces(img, df, input_data_path) for img in images]
     flat_cropped_faces = sum(cropped_faces, [])
     with_mask = [(img, image_name) for img, label, image_name in flat_cropped_faces if label == "with_mask"]
 
-    mask_weared_incorrect = [(img, image_name) for img, label, image_name in flat_cropped_faces if
-                             label == "mask_weared_incorrect"]
     without_mask = [(img, image_name) for img, label, image_name in flat_cropped_faces if label == "without_mask"]
 
-    print(len(with_mask))
-    print(len(without_mask))
-    print(len(mask_weared_incorrect))
-    print(len(with_mask) + len(without_mask) + len(mask_weared_incorrect))
-
     train_with_mask, test_with_mask = train_test_split(with_mask, test_size=0.20, random_state=42)
-    test_with_mask, val_with_mask = train_test_split(test_with_mask, test_size=0.7, random_state=42)
+    # print(len(train_with_mask), len(test_with_mask))
+    test_with_mask, val_with_mask = train_test_split(test_with_mask, test_size=0.5, random_state=42)
+    # print(len(test_with_mask), len(val_with_mask))
     train_without_mask, test_without_mask = train_test_split(without_mask, test_size=0.20, random_state=42)
-    test_without_mask, val_without_mask = train_test_split(test_without_mask, test_size=0.7, random_state=42)
+    # print(len(train_without_mask), len(test_without_mask))
+    test_without_mask, val_without_mask = train_test_split(test_without_mask, test_size=0.5, random_state=42)
+    # print(len(test_without_mask), len(val_without_mask))
+
+    print(f"Train:\nWith Mask: {len(train_with_mask)}, Without Mask: {len(train_without_mask)}")
+    print(f"Test:\nWith Mask: {len(test_with_mask)}, Without Mask: {len(test_without_mask)}")
+    print(f"Val:\nWith Mask: {len(val_with_mask)}, Without Mask: {len(val_without_mask)}")
+
+
     for image, image_name in train_with_mask:
         save_image(image, image_name, output_data_path, 'train', 'with_mask')
 

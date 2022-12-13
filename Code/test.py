@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+from tensorflow import keras
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
 
@@ -79,8 +80,9 @@ def test():
 
     # display(classes)
     print(np.bincount(y_pred))
+    opt = keras.optimizers.Adam(learning_rate=0.0001)
     model.compile(
-        optimizer='RMSprop',
+        optimizer=opt,
         loss="binary_crossentropy",
         metrics=['accuracy', 'Recall', 'Precision']
     )
