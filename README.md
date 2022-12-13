@@ -4,7 +4,7 @@
 Downloads the data from drive and does all the preprocessing followed by storing the train, test and validation images in the directory
 
 ## Train.py
-Performs the training and testing process and saves the model inside the model directory. If the preprocessed folders are not generated it would automatically run the preprocessing.py
+Performs the training, validation and testing process and saves the model inside the model directory. If the preprocessed folders are not generated it would automatically run the preprocessing.py
 
 ## Test.py
 Read the models and predicts. If the training model is not found it would train the model first and then executes the testing module.
