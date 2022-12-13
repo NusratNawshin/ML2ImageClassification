@@ -12,6 +12,9 @@ Read the models and predicts. If the training model is not found it would train 
 ## Masked_NN_withDownloadDataset.ipynb
 Runs the whole pipeline in jupyter notebook file and includes all the outputs of each steps. It also includes testing and predicting with new unknown image that is saved as withoutmask.jpg into the directory.
 
+## UnknowImage_predictions.ipynb
+Reads image from directory named as 'sample.jpg' and loads model from drive to predict and classify image
+
 ## Instruction to run
  - python3 -m pip install -r requirements.txt
  - cd Code
