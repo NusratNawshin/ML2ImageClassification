@@ -22,7 +22,7 @@ def check_preprocess():
 def masked_model():
     model = Sequential()
 
-    model.add(Conv2D(128, kernel_size=5, strides=1, padding='same', input_shape=(35, 35, 3)))
+    model.add(Conv2D(128, kernel_size=5, strides=1, padding='same', input_shape=(32, 32, 3)))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=3, strides=2, padding='same'))
@@ -69,7 +69,7 @@ def create_valDatagen():
 
 
 def create_dataset_generator(datagen, batch_size, path,shuffle):
-    "Data generator: reads images inn batches, encodes the target, reshapes the images"
+    "Data generator: reads images in batches, encodes the target, reshapes the images"
     return datagen.flow_from_directory(
         directory=str(os.getcwd()) + path,
         target_size=(32, 32),
@@ -77,6 +77,7 @@ def create_dataset_generator(datagen, batch_size, path,shuffle):
 
     )
 def prediction_label(predicts):
+    "Set threshold for prediction"
     temp = []
     for i in predicts:
         if i[0] < 0.5:
@@ -107,15 +108,16 @@ def train():
     print(f"steps_per_epoch: {steps_per_epoch}")
     val_steps = int(len(val_generator) // batch_size)
     print(f"val_steps: {val_steps}")
-    opt = keras.optimizers.Adam(learning_rate=0.0001)
+    opt = keras.optimizers.Adam(learning_rate=0.00009)
     model.compile(
         optimizer=opt,
+        # optimizer='adam',
         loss="binary_crossentropy",
         metrics=['accuracy', 'Recall', 'Precision']
         # metrics=['accuracy']
     )
-    # early_stopping = EarlyStopping(monitor='val_loss', patience=8, restore_best_weights=True)
-    # lrr = ReduceLROnPlateau(monitor='val_loss', patience=8, verbose=1, factor=0.5, min_lr=0.00001)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=20, restore_best_weights=True)
+    lrr = ReduceLROnPlateau(monitor='val_loss', patience=8, verbose=1, factor=0.5, min_lr=0.00001)
     model_history = model.fit(
         train_generator,
         steps_per_epoch=steps_per_epoch,

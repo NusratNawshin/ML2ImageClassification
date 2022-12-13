@@ -83,7 +83,7 @@ def test():
 
     # display(classes)
     print(np.bincount(y_pred))
-    opt = keras.optimizers.Adam(learning_rate=0.0001)
+    opt = keras.optimizers.Adam(learning_rate=0.00009)
     model.compile(
         optimizer=opt,
         loss="binary_crossentropy",
